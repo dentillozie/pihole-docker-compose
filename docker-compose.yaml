@@ -1,0 +1,51 @@
+version: "2"
+services:
+  pihole:
+    container_name: pihole
+    domainname: docker
+    hostname: pihole
+    image: pihole/pihole:latest
+    networks: 
+      - "pihole_network"
+    ports:
+      - '53:53/tcp'
+      - '53:53/udp'
+      - '8081:80'
+    restart: unless-stopped
+    volumes:
+      - ${USERDIR}/docker/pihole/pihole:/etc/pihole
+      - ${USERDIR}/docker/pihole/dnsmasq.d:/etc/dnsmasq.d
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - ServerIP=192.168.0.99
+      - PROXY_LOCATION=pihole
+      - VIRTUAL_HOST=pihole.challenger
+      - VIRTUAL_PORT=8081
+      - TZ=Europe/Brussels
+      - WEBPASSWORD=Testtest
+      - DNS1=127.0.0.1
+      - DNS2=1.1.1.1
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=pihole"
+      - "traefik.port=80"
+      - "traefik.frontend.priority=1"
+      - traefik.frontend.headers.SSLRedirect=true
+      - traefik.frontend.headers.STSSeconds=315360000
+      - traefik.frontend.headers.browserXSSFilter=true
+      - traefik.frontend.headers.contentTypeNosniff=true
+      - traefik.frontend.headers.forceSTSHeader=true
+      - traefik.frontend.headers.STSIncludeSubdomains=true
+      - traefik.frontend.headers.STSPreload=true
+      - traefik.frontend.headers.frameDeny=true
+networks:
+  pihole_network:                         # Name of network
+    driver: macvlan                       # Use the macvlan network driver
+    driver_opts:
+      parent: br0                    # If open vSwitch is disabled use eth0 (or eth1 +)
+    ipam:
+      config:
+        - subnet: "192.168.0.0/24"        # Specify subnet
+          gateway: "192.168.0.1"          # Gateway address
+          ip_range: "192.168.0.32/28"
